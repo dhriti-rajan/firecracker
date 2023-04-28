@@ -1,3 +1,5 @@
+from utils import check_command_with_return
+
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 """Tests scenario for microvms with max vcpus(32)."""
@@ -21,6 +23,7 @@ def test_max_vcpus(test_microvm_with_api, network_config):
     microvm.start()
 
     cmd = "nproc"
-    _, stdout, stderr = microvm.ssh.execute_command(cmd)
-    assert stderr.read() == ""
+
+    result, _, stdout, _ = check_command_with_return(microvm.ssh, cmd, expected_stderr="")
+    assert result
     assert int(stdout.read()) == MAX_VCPUS

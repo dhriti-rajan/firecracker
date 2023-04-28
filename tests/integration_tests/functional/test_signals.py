@@ -10,6 +10,8 @@ from time import sleep
 
 import pytest
 
+from utils import check_command, check_command_with_return
+
 from framework import utils
 
 signum_str = {
@@ -157,8 +159,8 @@ def test_handled_signals(test_microvm_with_api, network_config):
     # Open a SSH connection to validate the microVM stays alive.
     # Just validate a simple command: `nproc`
     cmd = "nproc"
-    _, stdout, stderr = microvm.ssh.execute_command(cmd)
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(microvm.ssh, cmd, expected_stderr="")
+    assert result
     assert int(stdout.read()) == 2
 
     # We have a handler installed for this signal.
@@ -168,6 +170,6 @@ def test_handled_signals(test_microvm_with_api, network_config):
     os.kill(firecracker_pid, 35)
 
     # Validate the microVM is still up and running.
-    _, stdout, stderr = microvm.ssh.execute_command(cmd)
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(microvm.ssh, cmd, expected_stderr="")
+    assert result
     assert int(stdout.read()) == 2

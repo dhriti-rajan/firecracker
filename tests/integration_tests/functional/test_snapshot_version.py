@@ -6,6 +6,8 @@ import platform
 
 import pytest
 
+from utils import check_command
+
 from framework.artifacts import NetIfaceConfig
 from framework.builder import MicrovmBuilder, SnapshotBuilder, SnapshotType
 from framework.utils import get_firecracker_version_from_toml, run_cmd
@@ -36,8 +38,7 @@ def _create_and_start_microvm_with_net_devices(
 
     if network_config is not None:
         # Verify if guest can run commands.
-        exit_code, _, _ = test_microvm.ssh.execute_command("sync")
-        assert exit_code == 0
+        assert check_command(test_microvm.ssh, "sync", expected_rc=0)
 
 
 @pytest.mark.skipif(

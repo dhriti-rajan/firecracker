@@ -9,6 +9,8 @@ import framework.utils_cpuid as cpuid_utils
 from framework.properties import global_props
 from framework.utils_cpu_templates import SUPPORTED_CPU_TEMPLATES
 
+from utils import check_command, check_command_with_return
+
 pytestmark = pytest.mark.skipif(
     global_props.cpu_architecture != "x86_64", reason="x86_64 specific tests"
 )
@@ -241,7 +243,8 @@ def test_feat_parity_msr_arch_cap(vm):
     """
     arch_capabilities_addr = "0x10a"
     rdmsr_cmd = f"rdmsr {arch_capabilities_addr}"
-    _, stdout, stderr = vm.ssh.execute_command(rdmsr_cmd)
+    result, _, stdout, stderr = check_command_with_return(vm.ssh, rdmsr_cmd)
+    assert result
 
     cpu_template = vm.full_cfg.get().json()["machine-config"]["cpu_template"]
 

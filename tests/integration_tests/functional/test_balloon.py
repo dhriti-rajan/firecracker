@@ -8,9 +8,13 @@ import time
 
 from retry import retry
 
+from utils import check_command, check_command_with_return
+
 from framework.artifacts import NetIfaceConfig
 from framework.builder import MicrovmBuilder, SnapshotBuilder, SnapshotType
 from framework.utils import get_free_mem_ssh, run_cmd
+
+from utils import check_command
 
 MB_TO_PAGES = 256
 STATS_POLLING_INTERVAL_S = 1
@@ -46,22 +50,23 @@ def make_guest_dirty_memory(ssh_connection, should_oom=False, amount=8192):
     amount_in_mbytes = amount / MB_TO_PAGES
 
     cmd = f"/sbin/fillmem {amount_in_mbytes}"
-    exit_code, stdout, stderr = ssh_connection.execute_command(cmd)
+    result, _, stdout, stderr = check_command_with_return(ssh_connection, cmd, expected_rc=0)
     # add something to the logs for troubleshooting
-    if exit_code != 0:
+    if not result:
         logger.error("while running: %s", cmd)
         logger.error("stdout: %s", stdout.read())
         logger.error("stderr: %s", stderr.read())
 
     cmd = "cat /tmp/fillmem_output.txt"
-    _, stdout, _ = ssh_connection.execute_command(cmd)
+    result, _, stdout, _ = check_command_with_return(ssh_connection, cmd)
+
     if should_oom:
         assert (
             "OOM Killer stopped the program with "
             "signal 9, exit code 0" in stdout.read()
         )
     else:
-        assert exit_code == 0, stderr.read()
+        assert  result, stderr.read()
         stdout_txt = stdout.read()
         assert "Memory filling was successful" in stdout_txt, stdout_txt
 
@@ -690,4 +695,4 @@ def test_memory_scrub(microvm_factory, guest_kernel, rootfs, network_config):
     _ = get_stable_rss_mem_by_pid(firecracker_pid)
 
     exit_code, _, _ = microvm.ssh.execute_command("/sbin/readmem {} {}".format(60, 1))
-    assert exit_code == 0
+    assert check_command(microvm.ssh, "/sbin/readmem {} {}".format(60, 1), expected_rc=0)

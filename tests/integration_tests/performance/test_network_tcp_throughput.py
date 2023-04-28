@@ -121,6 +121,7 @@ def produce_iperf_output(
         )
         pinned_cmd = f"taskset --cpu-list {client_idx % basevm.vcpus_count}" f" {cmd}"
         _, stdout, _ = conn.execute_command(pinned_cmd)
+
         return stdout.read()
 
     # Remove inaccurate readings from the workloads end.

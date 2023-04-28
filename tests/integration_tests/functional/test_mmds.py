@@ -11,6 +11,8 @@ import time
 
 import pytest
 
+from utils import check_command, check_command_with_return
+
 import host_tools.logging as log_tools
 from framework.artifacts import NetIfaceConfig
 from framework.builder import MicrovmBuilder, SnapshotBuilder, SnapshotType

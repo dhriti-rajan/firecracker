@@ -9,6 +9,8 @@ from functools import lru_cache
 
 import pytest
 
+from utils import check_command
+
 import framework.stats as st
 import host_tools.drive as drive_tools
 from framework.artifacts import create_net_devices_configuration
@@ -166,8 +168,7 @@ def get_snap_restore_latency(
             full_snapshot, resume=True, use_ramdisk=True
         )
         # Check if guest still runs commands.
-        exit_code, _, _ = microvm.ssh.execute_command("dmesg")
-        assert exit_code == 0
+        assert check_command(microvm.ssh, "dmesg", expected_rc=0)
 
         value = 0
         # Parse all metric data points in search of load_snapshot time.

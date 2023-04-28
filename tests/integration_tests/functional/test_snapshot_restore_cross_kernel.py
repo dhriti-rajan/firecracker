@@ -10,6 +10,8 @@ import shutil
 
 import pytest
 
+from utils import check_command, check_command_with_return
+
 from framework.artifacts import (
     Artifact,
     ArtifactType,
@@ -104,15 +106,16 @@ def _test_mmds(vm, mmds_net_iface):
     cmd = "ip route add {} dev {}".format(
         mmds_net_iface.guest_ip, mmds_net_iface.dev_name
     )
-    code, _, _ = vm.ssh.execute_command(cmd)
-    assert code == 0
+
+    assert check_command(vm.ssh, cmd, expected_rc=0)
 
     # The base microVM had MMDS version 2 configured, which was persisted
     # across the snapshot-restore.
     token = generate_mmds_session_token(vm.ssh, mmds_ipv4_address, token_ttl=60)
 
     cmd = generate_mmds_get_request(mmds_ipv4_address, token=token)
-    _, stdout, _ = vm.ssh.execute_command(cmd)
+    result, _, stdout, _ = check_command_with_return(vm.ssh, cmd)
+    assert result
     assert json.load(stdout) == data_store
 
 
@@ -169,8 +172,7 @@ def test_snap_restore_from_artifacts(
         for iface in snapshot.net_ifaces:
             logger.info("Testing net device %s...", iface.dev_name)
             vm.ssh_config["hostname"] = iface.guest_ip
-            exit_code, _, _ = vm.ssh.execute_command("sync")
-            assert exit_code == 0
+            assert check_command(vm.ssh, "sync", expected_rc=0)
 
         logger.info("Testing data store behavior...")
         _test_mmds(vm, snapshot.net_ifaces[3])

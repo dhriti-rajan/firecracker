@@ -17,6 +17,8 @@ In order to test the vsock device connection state machine, these tests will:
 import os.path
 from socket import timeout as SocketTimeout
 
+from utils import check_command
+
 import host_tools.logging as log_tools
 from framework.builder import MicrovmBuilder, SnapshotBuilder, SnapshotType
 from framework.utils_vsock import (
@@ -65,8 +67,7 @@ def negative_test_host_connections(vm, uds_path, blob_path, blob_hash):
     Closes the UDS sockets while data is in flight.
     """
     cmd = "vsock_helper echosrv -d {}".format(ECHO_SERVER_PORT)
-    ecode, _, _ = vm.ssh.execute_command(cmd)
-    assert ecode == 0
+    assert check_command(vm.ssh, cmd, expected_rc=0)
 
     workers = []
     for _ in range(NEGATIVE_TEST_CONNECTION_COUNT):
@@ -79,9 +80,8 @@ def negative_test_host_connections(vm, uds_path, blob_path, blob_hash):
         wrk.join()
 
     # Validate that Firecracker is still up and running.
-    ecode, _, _ = vm.ssh.execute_command("sync")
     # Should fail if Firecracker exited from SIGPIPE handler.
-    assert ecode == 0
+    assert check_command(vm.ssh, "sync", expected_rc=0)
 
     # Validate vsock emulation still accepts connections and works
     # as expected.

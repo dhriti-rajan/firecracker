@@ -8,6 +8,8 @@ import host_tools.logging as log_tools
 from framework.builder import MicrovmBuilder
 from framework.resources import DescribeInstance
 
+from utils import check_command, check_command_with_return
+
 
 def verify_net_emulation_paused(metrics):
     """Verify net emulation is paused based on provided metrics."""
@@ -57,8 +59,7 @@ def test_pause_resume(bin_cloner_path):
     microvm.start()
 
     # Verify guest is active.
-    exit_code, _, _ = microvm.ssh.execute_command("ls")
-    assert exit_code == 0
+    assert check_command(microvm.ssh, "ls", expected_rc=0)
 
     # Pausing the microVM after it's been started is successful.
     response = microvm.vm.patch(state="Paused")
@@ -68,7 +69,8 @@ def test_pause_resume(bin_cloner_path):
     microvm.flush_metrics(metrics_fifo)
 
     # Verify guest is no longer active.
-    exit_code, _, _ = microvm.ssh.execute_command("ls")
+    result, exit_code, _, _ = check_command_with_return(microvm.ssh, "ls")
+    assert result
     assert exit_code != 0
 
     # Verify emulation was indeed paused and no events from either
@@ -76,7 +78,8 @@ def test_pause_resume(bin_cloner_path):
     verify_net_emulation_paused(microvm.flush_metrics(metrics_fifo))
 
     # Verify guest is no longer active.
-    exit_code, _, _ = microvm.ssh.execute_command("ls")
+    result, exit_code, _, _ = check_command_with_return(microvm.ssh, "ls")
+    assert result
     assert exit_code != 0
 
     # Pausing the microVM when it is already `Paused` is allowed
@@ -89,8 +92,7 @@ def test_pause_resume(bin_cloner_path):
     assert microvm.api_session.is_status_no_content(response.status_code)
 
     # Verify guest is active again.
-    exit_code, _, _ = microvm.ssh.execute_command("ls")
-    assert exit_code == 0
+    assert check_command(microvm.ssh, "ls", expected_rc=0)
 
     # Resuming the microVM when it is already `Resumed` is allowed
     # (microVM remains in the running state).
@@ -98,8 +100,7 @@ def test_pause_resume(bin_cloner_path):
     assert microvm.api_session.is_status_no_content(response.status_code)
 
     # Verify guest is still active.
-    exit_code, _, _ = microvm.ssh.execute_command("ls")
-    assert exit_code == 0
+    assert check_command(microvm.ssh, "ls", expected_rc=0)
 
     microvm.kill()
 

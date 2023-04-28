@@ -5,6 +5,7 @@
 import platform
 
 import pytest
+from utils import check_command
 
 # IRQs are available from 5 to 23, so the maximum number of devices
 # supported at the same time is 19.
@@ -42,8 +43,7 @@ def test_attach_maximum_devices(test_microvm_with_api, network_config):
     for i in range(MAX_DEVICES_ATTACHED - 1):
         test_microvm.ssh_config["hostname"] = guest_ips[i]
         # Verify if guest can run commands.
-        exit_code, _, _ = test_microvm.ssh.execute_command("sync")
-        assert exit_code == 0
+        assert check_command(test_microvm.ssh, "sync", expected_rc=0)
 
 
 @pytest.mark.skipif(

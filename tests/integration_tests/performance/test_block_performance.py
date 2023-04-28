@@ -10,6 +10,8 @@ from enum import Enum
 
 import pytest
 
+from utils import check_command, check_command_with_return
+
 import framework.stats as st
 import host_tools.drive as drive_tools
 from framework.stats.baseline import Provider as BaselineProvider
@@ -100,19 +102,17 @@ def run_fio(env_id, basevm, mode, bs):
         .build()
     )
 
-    rc, _, stderr = basevm.ssh.execute_command(
-        "echo 'none' > /sys/block/vdb/queue/scheduler"
-    )
-    assert rc == 0, stderr.read()
-    assert stderr.read() == ""
+    result, _, _, stderr = check_command_with_return(basevm.ssh, "echo 'none' > /sys/block/vdb/queue/scheduler", expected_rc=0, expected_stderr="")
+    assert result, stderr.read()
+
+
 
     # First, flush all guest cached data to host, then drop guest FS caches.
-    rc, _, stderr = basevm.ssh.execute_command("sync")
-    assert rc == 0, stderr.read()
-    assert stderr.read() == ""
-    rc, _, stderr = basevm.ssh.execute_command("echo 3 > /proc/sys/vm/drop_caches")
-    assert rc == 0, stderr.read()
-    assert stderr.read() == ""
+    result, _, _, stderr = check_command_with_return(basevm.ssh, "sync", expected_rc=0, expected_stderr="")
+    assert result, stderr.read()
+
+    result, _, _, stderr = check_command_with_return(basevm.ssh, "echo 3 > /proc/sys/vm/drop_caches", expected_rc=0, expected_stderr="")
+    assert result, stderr.read()
 
     # Then, flush all host cached data to hardware, also drop host FS caches.
     run_cmd("sync")
@@ -128,9 +128,9 @@ def run_fio(env_id, basevm, mode, bs):
         )
 
         # Print the fio command in the log and run it
-        rc, _, stderr = basevm.ssh.execute_command(cmd)
-        assert rc == 0, stderr.read()
-        assert stderr.read() == ""
+        result, _, _, stderr = check_command_with_return(basevm.ssh, cmd, expected_rc=0, expected_stderr="")
+        assert result, stderr.read()
+        
 
         if os.path.isdir(logs_path):
             shutil.rmtree(logs_path)
@@ -138,8 +138,8 @@ def run_fio(env_id, basevm, mode, bs):
         os.makedirs(logs_path)
 
         basevm.ssh.scp_get_file("*.log", logs_path)
-        rc, _, stderr = basevm.ssh.execute_command("rm *.log")
-        assert rc == 0, stderr.read()
+        result, _, _, stderr = check_command_with_return(basevm.ssh, "rm *.log", expected_rc=0)
+        assert result, stderr.read()
 
         result = {}
         cpu_load = cpu_load_future.result()

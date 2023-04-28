@@ -12,12 +12,15 @@ import time
 
 import pytest
 
+from utils import check_command, check_command_with_return
+
 import framework.utils_cpuid as utils
 import host_tools.drive as drive_tools
 import host_tools.network as net_tools
 from framework.artifacts import NetIfaceConfig, SnapshotType
 from framework.builder import MicrovmBuilder, SnapshotBuilder
 from framework.utils import is_io_uring_supported
+
 
 MEM_LIMIT = 1000000000
 
@@ -85,9 +88,7 @@ def test_drive_io_engine(test_microvm_with_api, network_config):
     test_microvm.start()
 
     # Execute a simple command to check that the guest booted successfully.
-    rc, _, stderr = test_microvm.ssh.execute_command("sync")
-    assert rc == 0
-    assert stderr.read() == ""
+    assert check_command(test_microvm.ssh, "sync", expected_rc=0, expected_stderr="")
 
     assert test_microvm.full_cfg.get().json()["drives"][0]["io_engine"] == "Sync"
 

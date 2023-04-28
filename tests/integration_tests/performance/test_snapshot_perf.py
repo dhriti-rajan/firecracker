@@ -9,6 +9,8 @@ import platform
 
 import pytest
 
+from utils import check_command
+
 import host_tools.logging as log_tools
 from framework.artifacts import NetIfaceConfig
 from framework.builder import MicrovmBuilder, SnapshotBuilder, SnapshotType
@@ -221,8 +223,7 @@ def snapshot_resume_producer(logger, vm_builder, snapshot, snapshot_type, use_ra
 
     # Attempt to connect to resumed microvm.
     # Verify if guest can run commands.
-    exit_code, _, _ = microvm.ssh.execute_command("ls")
-    assert exit_code == 0
+    assert check_command(microvm.ssh, "ls", expected_rc=0)
 
     value = 0
     # Parse all metric data points in search of load_snapshot time.
@@ -273,8 +274,7 @@ def test_older_snapshot_resume_latency(
     vm.start()
 
     # Check if guest works.
-    exit_code, _, _ = vm.ssh.execute_command("ls")
-    assert exit_code == 0
+    assert check_command(vm.ssh, "ls", expected_rc=0)
 
     # The snapshot builder expects disks as paths, not artifacts.
     disks = [vm.rootfs_file]
@@ -446,8 +446,7 @@ def test_snapshot_resume_latency(
     vm.add_net_iface(iface)
     vm.start()
     # Check if guest works.
-    exit_code, _, _ = vm.ssh.execute_command("ls")
-    assert exit_code == 0
+    assert check_command(vm.ssh, "ls", expected_rc=0)
 
     logger.info("Create %s", snapshot_type)
     # Create a snapshot builder from a microvm.

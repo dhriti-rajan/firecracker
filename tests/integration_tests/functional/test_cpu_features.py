@@ -16,6 +16,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from utils import check_command, check_command_with_return
+
 import framework.utils_cpuid as cpuid_utils
 from framework import utils
 from framework.artifacts import NetIfaceConfig
@@ -177,8 +179,8 @@ def test_brand_string(test_microvm_with_api, network_config):
     test_microvm.start()
 
     guest_cmd = "cat /proc/cpuinfo | grep 'model name' | head -1"
-    _, stdout, stderr = test_microvm.ssh.execute_command(guest_cmd)
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, guest_cmd, expected_stderr="")
+    assert result
 
     line = stdout.readline().rstrip()
     mo = re.search("^model name\\s+:\\s+(.+)$", line)
@@ -385,8 +387,8 @@ def dump_msr_state_to_file(dump_fname, ssh_conn, shared_names):
     ssh_conn.scp_file(
         shared_names["msr_reader_host_fname"], shared_names["msr_reader_guest_fname"]
     )
-    _, stdout, stderr = ssh_conn.execute_command(shared_names["msr_reader_guest_fname"])
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(ssh_conn, shared_names["msr_reader_guest_fname"], expected_stderr="")
+    assert result
 
     with open(dump_fname, "w", encoding="UTF-8") as file:
         file.write(stdout.read())
@@ -442,10 +444,11 @@ def test_cpu_wrmsr_snapshot(
     wrmsr_input_guest_fname = "/tmp/wrmsr_input.txt"
     vm.ssh.scp_file(wrmsr_input_host_fname, wrmsr_input_guest_fname)
 
-    _, _, stderr = vm.ssh.execute_command(
-        f"{msr_writer_guest_fname} {wrmsr_input_guest_fname}"
-    )
-    assert stderr.read() == ""
+    # _, _, stderr = vm.ssh.execute_command(
+    #     f"{msr_writer_guest_fname} {wrmsr_input_guest_fname}"
+    # )
+    # assert stderr.read() == ""
+    assert check_command(vm.ssh, f"{msr_writer_guest_fname} {wrmsr_input_guest_fname}", expected_stderr="")
 
     # Dump MSR state to a file that will be published to S3 for the 2nd part of the test
     snapshot_artifacts_dir = (
@@ -610,8 +613,8 @@ def dump_cpuid_to_file(dump_fname, ssh_conn):
     """
     Read CPUID via SSH and dump it into a file.
     """
-    _, stdout, stderr = ssh_conn.execute_command("cpuid --one-cpu")
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(ssh_conn, "cpuid --one-cpu", expected_stderr="")
+    assert result
 
     with open(dump_fname, "w", encoding="UTF-8") as file:
         file.write(stdout.read())

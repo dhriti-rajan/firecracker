@@ -9,6 +9,8 @@ from ast import literal_eval
 
 import pytest
 
+from utils import check_command_with_return
+
 import framework.utils_cpuid as utils
 
 TOPOLOGY_STR = {1: "0", 2: "0,1", 16: "0-15"}
@@ -92,10 +94,8 @@ def _check_cache_topology_arm(test_microvm, no_cpus):
 
     cache_files = ["level", "type", "size", "coherency_line_size", "number_of_sets"]
 
-    _, stdout, stderr = test_microvm.ssh.execute_command(
-        "/usr/local/bin/get_cache_info.sh"
-    )
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, "/usr/local/bin/get_cache_info.sh", expected_stderr="")
+    assert result
 
     guest_dict = json.loads(literal_eval(stdout.read().strip()))
     host_dict = {}

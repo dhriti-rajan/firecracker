@@ -3,6 +3,7 @@
 """Tests for the net device."""
 import time
 
+from utils import check_command
 from framework import utils
 
 # The iperf version to run this tests with
@@ -47,8 +48,7 @@ def test_high_ingress_traffic(test_microvm_with_api, network_config):
     # Check if the high ingress traffic broke the net interface.
     # If the net interface still works we should be able to execute
     # ssh commands.
-    exit_code, _, _ = test_microvm.ssh.execute_command("echo success\n")
-    assert exit_code == 0
+    assert check_command(test_microvm.ssh, "echo success\n", expected_rc=0)
 
 
 def test_multi_queue_unsupported(test_microvm_with_api):

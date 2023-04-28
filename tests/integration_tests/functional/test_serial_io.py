@@ -9,6 +9,8 @@ import subprocess
 import termios
 import time
 
+from utils import check_command, check_command_with_return
+
 import host_tools.logging as log_tools
 from framework import utils
 from framework.artifacts import SnapshotType
@@ -221,17 +223,15 @@ def test_serial_block(test_microvm_with_api, network_config):
     subprocess.check_call("kill -s STOP {}".format(screen_pid), shell=True)
 
     # Generate a random text file.
-    exit_code, _, _ = test_microvm.ssh.execute_command(
+    _, _, _ = test_microvm.ssh.execute_command(
         "base64 /dev/urandom | head -c 100000 > file.txt"
     )
 
     # Dump output to terminal
-    exit_code, _, _ = test_microvm.ssh.execute_command("cat file.txt > /dev/ttyS0")
-    assert exit_code == 0
+    assert check_command(test_microvm.ssh, "cat file.txt > /dev/ttyS0", expected_rc=0)
 
     # Check that the vCPU isn't blocked.
-    exit_code, _, _ = test_microvm.ssh.execute_command("cd /")
-    assert exit_code == 0
+    assert check_command(test_microvm.ssh, "cd /", expected_rc=0)
 
     # Check the metrics to see if the serial missed bytes.
     fc_metrics = test_microvm.flush_metrics(metrics_fifo)

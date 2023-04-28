@@ -3,6 +3,7 @@
 """Tests that fail if network throughput does not obey rate limits."""
 import time
 
+from utils import check_command_with_return
 from framework import utils
 from host_tools import cpu_load
 
@@ -440,9 +441,9 @@ def _start_iperf_on_guest(test_microvm, hostname):
 def _run_iperf_on_guest(test_microvm, iperf_cmd, hostname):
     """Run a client related iperf command through an SSH connection."""
     test_microvm.ssh_config["hostname"] = hostname
-    _, stdout, stderr = test_microvm.ssh.execute_command(iperf_cmd)
-    assert stderr.read() == ""
-
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, iperf_cmd, expected_stderr="")
+    assert result
+    
     out = stdout.read()
     return out
 

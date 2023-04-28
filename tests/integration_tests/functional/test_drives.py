@@ -5,6 +5,8 @@
 import os
 import platform
 
+from utils import check_command, check_command_with_return
+
 import host_tools.drive as drive_tools
 import host_tools.logging as log_tools
 from framework import utils
@@ -48,9 +50,8 @@ def test_rescan_file(test_microvm_with_api, network_config):
     truncated_size = block_size // 2
     utils.run_cmd(f"truncate --size {truncated_size}M {fs.path}")
     block_copy_name = "dev_vdb_copy"
-    _, _, stderr = test_microvm.ssh.execute_command(
-        f"dd if=/dev/vdb of={block_copy_name} bs=1M count={block_size}"
-    )
+    result, _, _, stderr = check_command_with_return(test_microvm.ssh, f"dd if=/dev/vdb of={block_copy_name} bs=1M count={block_size}")
+    assert result
     assert "dd: error reading '/dev/vdb': Input/output error" in stderr.read()
     _check_file_size(test_microvm.ssh, f"{block_copy_name}", truncated_size * MB)
 
@@ -304,8 +305,8 @@ def test_patch_drive(test_microvm_with_api, network_config):
     # of the device, in bytes.
     blksize_cmd = "lsblk -b /dev/vdb --output SIZE"
     size_bytes_str = "536870912"  # = 512 MiB
-    _, stdout, stderr = test_microvm.ssh.execute_command(blksize_cmd)
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, blksize_cmd, expected_stderr="")
+    assert result
     stdout.readline()  # skip "SIZE"
     assert stdout.readline().strip() == size_bytes_str
 
@@ -346,8 +347,7 @@ def test_no_flush(test_microvm_with_api, network_config):
 
     # Have the guest drop the caches to generate flush requests.
     cmd = "sync; echo 1 > /proc/sys/vm/drop_caches"
-    _, _, stderr = test_microvm.ssh.execute_command(cmd)
-    assert stderr.read() == ""
+    assert check_command(test_microvm.ssh, cmd, expected_stderr="")
 
     # Verify all flush commands were ignored even after
     # dropping the caches.
@@ -388,8 +388,7 @@ def test_flush(test_microvm_with_api, network_config):
 
     # Have the guest drop the caches to generate flush requests.
     cmd = "sync; echo 1 > /proc/sys/vm/drop_caches"
-    _, _, stderr = test_microvm.ssh.execute_command(cmd)
-    assert stderr.read() == ""
+    assert check_command(test_microvm.ssh, cmd, expected_stderr="")
 
     # On average, dropping the caches right after boot generates
     # about 6 block flush requests.
@@ -447,8 +446,8 @@ def check_iops_limit(ssh_connection, block_size, count, min_time, max_time):
     )
     print("Running cmd {}".format(dd))
     # Check write iops (writing with oflag=direct is more reliable).
-    exit_code, _, stderr = ssh_connection.execute_command(dd)
-    assert exit_code == 0
+    result, _, _, stderr = check_command_with_return(ssh_connection, dd, expected_rc=0)
+    assert result
 
     # "dd" writes to stderr by design. We drop first lines
     stderr.readline().strip()
@@ -530,20 +529,14 @@ def test_patch_drive_limiter(test_microvm_with_api, network_config):
 
 
 def _check_block_size(ssh_connection, dev_path, size):
-    _, stdout, stderr = ssh_connection.execute_command(
-        "blockdev --getsize64 {}".format(dev_path)
-    )
-
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(ssh_connection, "blockdev --getsize64 {}".format(dev_path), expected_stderr="")
+    assert result
     assert stdout.readline().strip() == str(size)
 
 
 def _check_file_size(ssh_connection, dev_path, size):
-    _, stdout, stderr = ssh_connection.execute_command(
-        "stat --format=%s {}".format(dev_path)
-    )
-
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(ssh_connection, "stat --format=%s {}".format(dev_path), expected_stderr="")
+    assert result
     assert stdout.readline().strip() == str(size)
 
 
@@ -558,6 +551,6 @@ def _process_blockdev_output(blockdev_out, assert_dict, keys_array):
 
 
 def _check_drives(test_microvm, assert_dict, keys_array):
-    _, stdout, stderr = test_microvm.ssh.execute_command("blockdev --report")
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, "blockdev --report", expected_stderr="")
+    assert result
     _process_blockdev_output(stdout.read(), assert_dict, keys_array)

@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 import requests
 
+from utils import check_command_with_return
+
 from framework import utils
 from framework.artifacts import DEFAULT_NETMASK
 from framework.properties import global_props
@@ -87,8 +89,8 @@ def run_spectre_meltdown_checker_on_guest(
     """Run the spectre / meltdown checker on guest"""
     remote_path = f"/bin/{CHECKER_FILENAME}"
     microvm.ssh.scp_file(spectre_meltdown_checker, remote_path)
-    ecode, stdout, stderr = microvm.ssh.execute_command(f"sh {remote_path} --explain")
-    assert ecode == 0, f"stdout:\n{stdout.read()}\nstderr:\n{stderr.read()}\n"
+    result, _, stdout, stderr = check_command_with_return(microvm.ssh, f"sh {remote_path} --explain", expected_rc=0)
+    assert result, f"stdout:\n{stdout.read()}\nstderr:\n{stderr.read()}\n"
 
 
 @pytest.mark.skipif(
@@ -213,10 +215,8 @@ def check_vulnerabilities_files_on_guest(microvm):
     and search for `vulnerabilities`.
     """
     vuln_dir = "/sys/devices/system/cpu/vulnerabilities"
-    ecode, stdout, stderr = microvm.ssh.execute_command(
-        f"grep -r Vulnerable {vuln_dir}"
-    )
-    assert ecode == 1, f"stdout:\n{stdout.read()}\nstderr:\n{stderr.read()}\n"
+    result, _, stdout, stderr = check_command_with_return(microvm.ssh, f"grep -r Vulnerable {vuln_dir}", expected_rc=1)
+    assert result, f"stdout:\n{stdout.read()}\nstderr:\n{stderr.read()}\n"
 
 
 def test_vulnerabilities_files_on_guest(

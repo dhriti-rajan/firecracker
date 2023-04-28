@@ -11,6 +11,8 @@ from subprocess import TimeoutExpired
 import requests
 import urllib3
 
+from utils import check_command, check_command_with_return
+
 from framework.artifacts import SnapshotMemBackendType
 from framework.builder import MicrovmBuilder, SnapshotBuilder
 from framework.utils import UffdHandler, run_cmd
@@ -35,8 +37,7 @@ def create_snapshot(bin_cloner_path):
     basevm.start()
 
     # Verify if guest can run commands.
-    exit_code, _, _ = basevm.ssh.execute_command("sync")
-    assert exit_code == 0
+    assert check_command(basevm.ssh, "sync", expected_rc=0)
 
     # Create a snapshot builder from a microvm.
     snapshot_builder = SnapshotBuilder(basevm)
@@ -184,8 +185,7 @@ def test_valid_handler(bin_cloner_path, test_microvm_with_api, uffd_handler_path
     assert vm.api_session.is_status_no_content(response.status_code)
 
     # Verify if guest can run commands.
-    exit_code, _, _ = vm.ssh.execute_command("sync")
-    assert exit_code == 0
+    assert check_command(vm.ssh, "sync", expected_rc=0)
 
 
 def test_malicious_handler(bin_cloner_path, test_microvm_with_api, uffd_handler_paths):

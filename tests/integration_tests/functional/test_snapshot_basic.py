@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from utils import check_command, check_command_with_return
+
 import host_tools.drive as drive_tools
 from framework.artifacts import NetIfaceConfig
 from framework.builder import MicrovmBuilder, SnapshotBuilder, SnapshotType
@@ -28,8 +30,8 @@ def _get_guest_drive_size(ssh_connection, guest_dev_name="/dev/vdb"):
     # `lsblk` command outputs 2 lines to STDOUT:
     # "SIZE" and the size of the device, in bytes.
     blksize_cmd = "lsblk -b {} --output SIZE".format(guest_dev_name)
-    _, stdout, stderr = ssh_connection.execute_command(blksize_cmd)
-    assert stderr.read() == ""
+    result, _, stdout, _ = check_command_with_return(ssh_connection, blksize_cmd, expected_stderr="")
+    assert result
     stdout.readline()  # skip "SIZE"
     return stdout.readline().strip()
 
@@ -255,8 +257,7 @@ def test_cmp_full_and_first_diff_mem(
     vm.start()
 
     # Verify if guest can run commands.
-    exit_code, _, _ = vm.ssh.execute_command("sync")
-    assert exit_code == 0
+    assert check_command(vm.ssh, "sync", expected_rc=0)
 
     # Create a snapshot builder from a microvm.
     snapshot_builder = SnapshotBuilder(vm)

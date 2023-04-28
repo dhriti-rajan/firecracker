@@ -11,6 +11,8 @@ import shutil
 import pytest
 from retry.api import retry_call
 
+from utils import check_command, check_command_with_return
+
 from framework import utils, utils_cpuid
 from framework.artifacts import NetIfaceConfig
 from framework.utils import generate_mmds_get_request, generate_mmds_session_token
@@ -469,13 +471,13 @@ def test_config_start_and_mmds_with_api(test_microvm_with_api, vm_config_file):
     version, ipv4_address = _get_optional_fields_from_file(vm_config_file)
 
     cmd = "ip route add {} dev eth0".format(ipv4_address)
-    _, stdout, stderr = test_microvm.ssh.execute_command(cmd)
-    assert stderr.read() == stdout.read() == ""
+    assert check_command(test_microvm.ssh, cmd, expected_stdout="", expected_stderr="")
 
     # Fetch data from MMDS from the guest's side.
     cmd = _build_cmd_to_fetch_metadata(test_microvm.ssh, version, ipv4_address)
     cmd += "/latest/meta-data/"
-    _, stdout, _ = test_microvm.ssh.execute_command(cmd)
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, cmd)
+    assert result
     assert json.load(stdout) == data_store["latest"]["meta-data"]
 
     # Validate MMDS configuration.
@@ -517,12 +519,12 @@ def test_with_config_and_metadata_no_api(
     version, ipv4_address = _get_optional_fields_from_file(vm_config_file)
 
     cmd = "ip route add {} dev eth0".format(ipv4_address)
-    _, stdout, stderr = test_microvm.ssh.execute_command(cmd)
-    assert stderr.read() == stdout.read() == ""
+    assert check_command(test_microvm.ssh, cmd, expected_stdout="", expected_stderr="")
 
     # Fetch data from MMDS from the guest's side.
     cmd = _build_cmd_to_fetch_metadata(test_microvm.ssh, version, ipv4_address)
-    _, stdout, _ = test_microvm.ssh.execute_command(cmd)
+    result, _, stdout, _ = check_command_with_return(test_microvm.ssh, cmd)
+    assert result
 
     # Compare response against the expected MMDS contents.
     with open(metadata_file, encoding="utf-8") as metadata:

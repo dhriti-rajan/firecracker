@@ -9,6 +9,8 @@ import time
 
 import pytest
 
+from utils import check_command_with_return
+
 from framework.stats import consumer, producer
 from framework.stats.baseline import Provider as BaselineProvider
 from framework.stats.metadata import DictProvider as DictMetadataProvider
@@ -130,9 +132,8 @@ def produce_iperf_output(
         )
 
         pinned_cmd = f"taskset --cpu-list {client_idx % basevm.vcpus_count}" f" {cmd}"
-        rc, stdout, stderr = conn.execute_command(pinned_cmd)
-
-        assert rc == 0, stderr.read()
+        result, _, stdout, stderr = check_command_with_return(conn, pinned_cmd, expected_rc=0)
+        assert result, stderr.read()
 
         return stdout.read()
 
